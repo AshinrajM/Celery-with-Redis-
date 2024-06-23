@@ -1,0 +1,70 @@
+Celery is a distributed task queue system that can be used with Django to perform asynchronous tasks such as sending emails, processing background jobs, and more.
+We sometimes have tasks in our project that require a lot of time to execute and we don't want to block our main thread to perform such tasks. 
+e.g. sending an email to the user on successful account registration. We can afford a little delay in such a task's execution but we don't want to block other tasks because of them. 
+To overcome such scenarios, we use Celery to execute such tasks asynchronously behind the scene.
+Celery is an asynchronous task queue or job queue. Dedicated workers constantly monitor task queues for new work to perform and brokers are the ones who deliver tasks to a worker
+
+Celery Beat  :  There are tasks that need to execute repeatedly after regular intervals of time like sending a push notification to every user on a new item's arrival on an e-commerce site.
+Celery beat helps us to schedule such tasks at regular intervals.
+
+Redis is an in-memory data store. In-memory data storage or database stores data in the computer’s main memory instead of the disk drive to produce quicker response times.
+So what happened is, when you try to access some data from the server, there is a chance that the data (you need) is requested by any other user as well.
+What we can do is, we can place the most demanding data in the cache so that our users don't need to wait for it.
+
+1. Install Celery:   install Celery and a message broker (such as Redis or RabbitMQ) to use it for background task processing
+          pip install celery[redis]
+
+2. Create a Django Project
+
+3. Configure Celery in Django:    In your Django project, create a file named celery.py in the same directory as your settings.py file (usually your project's main directory).
+                                    This file will hold the Celery configuration.
+              # celery.py
+
+              from __future__ import absolute_import, unicode_literals
+              import os
+              from celery import Celery
+              from django.conf import settings
+              
+              # Set the default Django settings module for the 'celery' program.
+              os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'your_project.settings')
+              
+              app = Celery('your_project')  # Replace 'your_project' with your project's name.
+              
+              # Configure Celery using settings from Django settings.py.
+              app.config_from_object('django.conf:settings', namespace='CELERY')
+              
+              # Load tasks from all registered Django app configs.
+              app.autodiscover_tasks(lambda: settings.INSTALLED_APPS)
+
+4. Configure Celery Broker (Redis): configure Celery to use Redis as the message broker. Add this config in  settings.py
+              # settings.py
+
+              # Celery settings(6379 is the default port)
+              CELERY_BROKER_URL = 'redis://localhost:6379/0'  
+
+
+5. Create Celery Tasks:  Celery tasks as regular Python functions in our Django app.
+            # tasks.py
+
+            from celery import shared_task
+            
+            @shared_task
+            def my_task(arg1, arg2):
+                # Task logic here
+                result = arg1 + arg2
+                return result
+
+6. Use Celery Tasks : now we can use Celery tasks in  Django views, models, or any other parts of your application. 
+                      To call a task, import it and use the delay method to enqueue it for execution asynchronously
+
+            from .tasks import my_task
+
+            result = my_task.delay(3, 5)
+
+
+7. Start Celery Worker  :  To run Celery and process tasks, you need to start a Celery worker process.
+
+              celery -A your_project worker --loglevel=info
+
+
+
